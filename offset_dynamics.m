@@ -74,4 +74,13 @@ Y = [F; 0];
 
 eqns = simplify(Y == M*ddq + C*dq + N);
 
-dd_eqns = ddq == simplify(inv(M)*(Y-C*dq-N));
+dd_eqns = simplify(inv(M)*(Y-C*dq-N));
+
+%% Output dynamics to a file using matlabFunction
+
+output_to_file = 1; % Set to 1 if you'd like to write to file
+
+if output_to_file
+    matlabFunction(dd_eqns, 'File', 'offsetdyn_fun', 'Vars', {[x, dx, psi, dpsi], ...
+        F, [l po pu mp md mc Ip Id Ic g f]}); % Function will take params (states, input, params)
+end

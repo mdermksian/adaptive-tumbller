@@ -1,4 +1,4 @@
-function[] = animate_2D(t, y, dt)
+function[] = animate_2D(t, y)
 
 %     dt = 0.001;
 
@@ -25,7 +25,7 @@ function[] = animate_2D(t, y, dt)
     set(f, 'DoubleBuffer', 'on');
     hold on;
     axis equal;
-    axis([-0.2 1.4 0 0.15]);
+    axis([-0.2 1.4 -0.15 0.15]);
     plot([-0.2 1.4], [0 0], '-k');
     p_cart = patch(cart_coord(:,1), cart_coord(:,2), 'g');
     p_pend = patch(pend_coord(:,1), pend_coord(:,2), 'b');
@@ -35,7 +35,8 @@ function[] = animate_2D(t, y, dt)
     pause;
 
     % Animate platform
-    for i = 1 : n
+    for i = 1 : n-1
+        dt = t(i+1) - t(i);
         start = tic;
 
         x = y(i, 1);

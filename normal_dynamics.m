@@ -9,7 +9,7 @@ vee = @(mat) [mat(1,3); mat(2,3); mat(2,1)];
 adj = @(g) [[g(1,1) g(1,2);g(2,1) g(2,2)] [g(2,3);-g(1,3)]; zeros(1,2) 1];
 
 %% Forward kinematics
-syms x dx ddx psi dpsi ddpsi l po pu mp md mc Ip Id Ic F g f real;
+syms x dx ddx psi dpsi ddpsi l mp mc Ip Ic F g f real;
 
 g_ws = [1 0 x;
         0 1 0;
@@ -66,4 +66,24 @@ N = N + [f*dx; 0]; % Add friction
 Y = [F; 0];
 
 eqns = simplify(Y == M*ddq + C*dq + N);
-dd_eqns = ddq == simplify(inv(M)*(Y-C*dq-N));
+dd_eqns = simplify(inv(M)*(Y-C*dq-N));
+
+
+%% Output dynamics to a file using matlabFunction
+
+output_to_file = 0; % Set to 1 if you'd like to write to file
+
+if output_to_file
+    matlabFunction(dd_eqns, 'File', 'normaldyn_fun', 'Vars', {[x, dx, psi, dpsi], ...
+        F, [l mp mc Ip Ic g f]}); % Function will take params (states, input, params)
+end
+
+%% Linearize EOMs
+nonlin_ss = [dx; dd_eqns(1); dpsi; dd_eqns(2)];
+states = [x dx psi dpsi];
+pts = solve(subs(nonlin_ss == 0, F, 0), states);
+
+A = jacobian(nonlin_ss, states);
+B = jacobian(nonlin_ss, F);
+A = simplify(A);
+B = simplify(B);
