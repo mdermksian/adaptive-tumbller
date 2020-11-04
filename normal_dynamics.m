@@ -87,3 +87,22 @@ A = jacobian(nonlin_ss, states);
 B = jacobian(nonlin_ss, F);
 A = simplify(A);
 B = simplify(B);
+
+% Substitute real values
+eq = [0, 0, 0, 0];
+sym_params = [l mp mc Ip Ic g f];
+A_sys = subs(A, [x, dx, psi, dpsi, F, sym_params], [eq, 0, normal_dynamics_params()]);
+B_sys = subs(B, [x, dx, psi, dpsi, F, sym_params], [eq, 0, normal_dynamics_params()]);
+A_sys = double(A_sys);
+B_sys = double(B_sys);
+C = eye(4);
+D = zeros(4, 1);
+
+% Create linear SS system and design controller
+ss_sys = ss(A_sys, B_sys, C, D);
+Q = 1000*eye(4);
+R = 1;
+
+K = lqr(A_sys, B_sys, Q, R);
+
+save("normal_dyn_controller", "K");
