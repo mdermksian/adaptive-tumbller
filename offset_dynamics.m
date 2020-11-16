@@ -97,7 +97,7 @@ B = simplify(B);
 
 % Substitute real values
 sym_params = [l po pu mp md mc Ip Id Ic g f];
-params = offset_dynamics_params();
+[params, motorparams] = offset_dynamics_params();
 psi_eq = acot((params(4)*params(1)/(params(5)*params(2)))+(params(3)/params(2)));
 eq = [0, 0, psi_eq, 0];
 
@@ -105,6 +105,7 @@ A_sys = subs(A, [x, dx, psi, dpsi, F, sym_params], [eq, 0, params]);
 B_sys = subs(B, [x, dx, psi, dpsi, F, sym_params], [eq, 0, params]);
 A_sys = double(A_sys);
 B_sys = double(B_sys);
+B_sys = B_sys*(2*motorparams(1))/(motorparams(2)*motorparams(3));
 C = eye(4);
 D = zeros(4, 1);
 
@@ -115,4 +116,4 @@ R = 1;
 
 K = lqr(A_sys, B_sys, Q, R);
 
-save("offset_dyn_controller", "K");
+save("offset_dyn_controller", "K", "eq");

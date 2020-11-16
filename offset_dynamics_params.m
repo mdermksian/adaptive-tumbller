@@ -1,7 +1,7 @@
 %% Parameters for the offset dynamics of the robot
 % These are in a separate file because it's convenient to be able to just
 % call via "params  = offset_dynamics_params()"
-function params = offset_dynamics_params()
+function [params, motorparams] = offset_dynamics_params()
 l = 0.04; % m
 po = 0.04; % m
 pu = 0.01; % m
@@ -15,4 +15,10 @@ g = 9.81; % m/s/s
 f = 0.01; % N.s/m
 
 params = [l po pu mp md mc Ip Id Ic g f];
+
+kT = 0.11;
+R = 10;
+r = 0.0335;
+
+motorparams = [kT R r];
 end
