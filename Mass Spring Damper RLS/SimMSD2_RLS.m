@@ -25,14 +25,17 @@ T = 0.01;
 theta_true = [A(3,:) A(4,:) B(3)].';
 n_theta = length(theta_true);
 
+% Initial parameter guesses
 params0 = 2 * rand(n_params,1) .* params_true;
 theta0 = genTheta(params0);
 
-K0 = ones(n_theta, n_states);
+% Initial update matrix
 P0 = 1e8 * eye(n_theta);
 
+% Forgetting factor
 lambda = 0.99;
 
+% Low-pass filter for parameters (DOESNT WORK)
 w = 1000;
 G = tf(w, [1 w]);
 Gd = c2d(G, T, 'foh');
