@@ -52,12 +52,12 @@ class Main:
 
         if self.mode == "RLS":
             print("Running in mode", self.mode)
-            self.attach_callback()
+            self.attach_callback(rls.main)
             time.sleep(60)
             self.detach_callback()
         elif self.mode == "ADP":
             print("Running in mode", self.mode)
-            self.attach_callback()
+            self.attach_callback(adp.main)
             time.sleep(60)
             self.detach_callback()
         else:
