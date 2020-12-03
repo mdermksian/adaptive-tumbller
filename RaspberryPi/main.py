@@ -33,13 +33,11 @@ class Main:
         self._pi.bsc_i2c(0)
         self._pi.stop()
 
-    def attach_callback(self):
+    def attach_callback(self, fun):
         def cb(id, tick):
             s, b, d = self._pi.bsc_i2c(self.I2C_ADDR)
             if b:
-                print(s)
-                print(b)
-                print(d[:-1])
+                fun(s, b, d)
         """Attaches callback with pi as slave"""
         self._e = self._pi.event_callback(pigpio.EVENT_BSC, cb)
 
