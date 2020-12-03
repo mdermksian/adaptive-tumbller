@@ -11,7 +11,7 @@ class Main:
 
     SDA = 18
     SCL = 19
-    I2C_ADDR = 0x13
+    I2C_ADDR = 69
     _e = None
 
     def __init__(self, mode):
@@ -35,10 +35,11 @@ class Main:
 
     def attach_callback(self, fun):
         def cb(id, tick):
+            print("I'm being called")
             s, b, d = self._pi.bsc_i2c(self.I2C_ADDR)
             if b:
                 fun(s, b, d)
-        """Attaches callback with pi as slave"""
+
         self._e = self._pi.event_callback(pigpio.EVENT_BSC, cb)
 
     def detach_callback(self):
