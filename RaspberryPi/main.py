@@ -1,5 +1,6 @@
 import sys
 import time
+import struct
 import pigpio
 
 from rls import RLS
@@ -37,7 +38,9 @@ class Main:
         def cb(id, tick):
             s, b, d = self._pi.bsc_i2c(self.I2C_ADDR)
             if b == 16:
-                out = fun(s, b, d)
+                floats = struct.unpack('ffff', d)
+                K = fun(floats)
+                out = struct.pack('ffff', K[0], K[1], K[2], K[3])
                 self._pi.bsc_i2c(self.I2C_ADDR, out)
 
         self._e = self._pi.event_callback(pigpio.EVENT_BSC, cb)
