@@ -1,7 +1,9 @@
 
 class ADP:
-    def main(s, b, d):
+
+
+    def main(self, state):
         print("Printing from ADP")
-        print(d[:-1])
-        
-        return d
+        print(state)
+        K = state
+        return K

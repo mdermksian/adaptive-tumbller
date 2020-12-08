@@ -1,4 +1,3 @@
-import struct
 import numpy as np
 from control import lqr
 
@@ -39,12 +38,11 @@ class RLS:
         K = np.array(K)
         return K.ravel()
     
-    def main(self, s, b, d):
-        floats = struct.unpack('ffff', d)
-        float_mat = np.array(floats)
+    def main(self, state):
+        float_mat = np.array(state)
         print("Incoming:", float_mat)
         
         K = self.computeLQR()
         print("Outgoing:", K)
-        test = K.tolist()
-        return struct.pack('ffff', test[0], test[1], test[2], test[3])
+        K = K.tolist()
+        return K # <--- This needs to be a python list of 4 floats
