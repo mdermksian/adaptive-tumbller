@@ -1,32 +1,45 @@
 #include <Wire.h>
 
-void setup()
-{
-   Wire.begin(); // join i2c bus as master
-   Serial.begin(57600);
-}
-
 typedef union
 {
   float numbers[4];
   byte bytes[16];
 } FLOATUNION;
 
-FLOATUNION outgoing;
+//FLOATUNION outgoing;
 FLOATUNION incoming;
 
+typedef struct {
+  float state[4];
+  int16_t ctrl;
+} SENDTYPE;
+
+typedef union {
+  SENDTYPE data;
+  byte bytes[18];
+} SENDUNION;
+
+SENDUNION outgoing;
+
 float x = 1.0f;
+
+void setup()
+{
+   Wire.begin(); // join i2c bus as master
+   Serial.begin(57600);
+}
 
 void loop()
 {
   
   for (int i=0; i<4; i++)
   {
-    outgoing.numbers[i] = x;
+    outgoing.data.state[i] = x;
   }
+  outgoing.data.ctrl = -220;
 
   Wire.beginTransmission(69); // transmit to device 69
-  Wire.write(outgoing.bytes, 16);
+  Wire.write(outgoing.bytes, 18);
   Wire.endTransmission();
 
   Wire.requestFrom(69, 16);
