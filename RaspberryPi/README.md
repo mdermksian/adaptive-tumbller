@@ -7,7 +7,7 @@ These are the connections you need to make:
 ```
 Raspberry PI     | Arduino
 ---------------------------------
-Pin 12 (GPIO 18) | A4 (SDA) <-- or Sam's board SCL
+Pin 12 (GPIO 18) | A4 (SDA) <-- or Sam's board SDA
 Pin 35 (GPIO 19) | A5 (SCL) <-- or Sam's board SCL
 Any ground pin   | Any ground pin
 ```
