@@ -37,9 +37,9 @@ class Main:
     def attach_callback(self, fun):
         def cb(id, tick):
             s, b, d = self._pi.bsc_i2c(self.I2C_ADDR)
-            if b == 20:
-                floats = struct.unpack('fffff', d)
-                K = fun(floats)
+            if b == 18:
+                data = struct.unpack('ffffh', d)
+                K = fun(data)
                 out = struct.pack('ffff', K[0], K[1], K[2], K[3])
                 self._pi.bsc_i2c(self.I2C_ADDR, out)
 

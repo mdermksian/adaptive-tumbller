@@ -51,20 +51,21 @@ class RLS:
         self.P = p0 * np.identity(6)
         
         self.forget = 1.0
+        
+        self.phi = np.zeros((6, 4))
+        self.delta = np.ndarray((4, 1))
     
     
     def updateRLS(self, meas, ctrl):
-        phi = np.zeros((6, 4))
-        phi[0:2, 1] = self.Tsamp * meas[1:3, 0]
-        phi[4, 1] = self.Tsamp * ctrl
-        phi[2:4, 3] = self.Tsamp * meas[1:3, 0]
-        phi[5, 3] = self.Tsamp * ctrl
+        self.phi[0:2, 1] = self.Tsamp * meas[1:3, 0]
+        self.phi[4, 1] = self.Tsamp * ctrl
+        self.phi[2:4, 3] = self.Tsamp * meas[1:3, 0]
+        self.phi[5, 3] = self.Tsamp * ctrl
         
-        delta = np.ndarray((4, 1))
-        delta[0, 0] = meas[0, 0] + self.Tsamp * meas[1, 0]
-        delta[1, 0] = meas[1, 0]
-        delta[2, 0] = meas[2, 0] + self.Tsamp * meas[3, 0]
-        delta[3, 0] = meas[3, 0]
+        self.delta[0, 0] = meas[0, 0] + self.Tsamp * meas[1, 0]
+        self.delta[1, 0] = meas[1, 0]
+        self.delta[2, 0] = meas[2, 0] + self.Tsamp * meas[3, 0]
+        self.delta[3, 0] = meas[3, 0]
         
         K = self.P @ phi @ np.linalg.inv(self.forget * np.identity(4) + phi.T @ P @ phi)
         self.theta = self.theta + K @ (meas - phi.T @ self.theta - delta)
@@ -86,13 +87,13 @@ class RLS:
         return K.ravel()
     
     
-    def main(self, floats):
-        float_mat = np.array(floats)
-        state = float_mat[0:4]
-        ctrl = float_mat[4]
-        print("Incoming:", float_mat)
+    def main(self, data):
+        data_mat = np.array(data)
+        state = np.expand_dims(data_mat[0:4], 1)
+        ctrl = data_mat[4]
+        print("Incoming:", data_mat)
         
-        self.updateRLS(float_mat, ctrl)
+        self.updateRLS(state, ctrl)
         K = self.computeLQR()
         print("Outgoing:", K)
         K = K.tolist()
