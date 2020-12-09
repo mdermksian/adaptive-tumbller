@@ -11,7 +11,7 @@ Pin 12 (GPIO 18) | A4 (SDA) <-- or Sam's board SCL
 Pin 35 (GPIO 19) | A5 (SCL) <-- or Sam's board SCL
 Any ground pin   | Any ground pin
 ```
-You can find a pinout diagram for the pi here: learn.sparkfun.com/tutorials/raspberry-gpio/gpio-pinout obviously use the diagram that matches your PI (should be the bigger header pins).
+You can find a pinout diagram for the pi here: https://learn.sparkfun.com/tutorials/raspberry-gpio/gpio-pinout obviously use the diagram that matches your PI (should be the bigger header pins).
 
 ### Software Setup
 Some things you'll need to do in advance on the Pi before this will work (just run these once):
