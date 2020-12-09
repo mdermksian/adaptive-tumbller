@@ -90,7 +90,7 @@ class RLS:
     def main(self, data):
         data_mat = np.array(data)
         state = np.expand_dims(data_mat[0:4], 1)
-        ctrl = data_mat[4]
+        ctrl = data_mat[4] * 8.0 / 255.0 # convert PWM to volts
         print("Incoming:", data_mat)
         
         self.updateRLS(state, ctrl)
