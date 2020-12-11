@@ -3,6 +3,9 @@ from control import lqr
 
 class RLS:
     def __init__(self):
+        self.state = []
+        self.control = None
+        
         self.mcart = 0.493
         self.mpend = 0.312
         self.Ipend = 0.00024
@@ -67,9 +70,9 @@ class RLS:
         self.delta[2, 0] = meas[2, 0] + self.Tsamp * meas[3, 0]
         self.delta[3, 0] = meas[3, 0]
         
-        K = self.P @ phi @ np.linalg.inv(self.forget * np.identity(4) + phi.T @ P @ phi)
-        self.theta = self.theta + K @ (meas - phi.T @ self.theta - delta)
-        self.P = (np.identity(6) - K @ phi.T) @ self.P / self.forget
+        K = self.P @ self.phi @ np.linalg.inv(self.forget * np.identity(4) + self.phi.T @ self.P @ self.phi)
+        self.theta = self.theta + K @ (meas - self.phi.T @ self.theta - self.delta)
+        self.P = (np.identity(6) - K @ self.phi.T) @ self.P / self.forget
         
         self.updateModel()
     
@@ -87,15 +90,14 @@ class RLS:
         return K.ravel()
     
     
-    def main(self, data):
-        data_mat = np.array(data)
-        state = np.expand_dims(data_mat[0:4], 1)
-        ctrl = data_mat[4] * 8.0 / 255.0 # convert PWM to volts
-        print("Incoming:", data_mat)
-        
+    def main(self, state, ctrl):
+        #data_mat = np.array(data)
+        #state = np.expand_dims(data_mat[0:4], 1)
+        #ctrl = data_mat[4] * 8.0 / 255.0 # convert PWM to volts
+        #print("Incoming:", data_mat)
+        state = np.array(state).reshape(-1,1)
         self.updateRLS(state, ctrl)
         K = self.computeLQR()
-        print("Outgoing:", K)
         K = K.tolist()
         return K # <--- This needs to be a python list of 4 floats
     

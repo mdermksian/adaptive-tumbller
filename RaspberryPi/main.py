@@ -36,12 +36,31 @@ class Main:
 
     def attach_callback(self, fun):
         def cb(id, tick):
-            s, b, d = self._pi.bsc_i2c(self.I2C_ADDR)
-            if b == 18:
-                data = struct.unpack('ffffh', d)
-                K = fun(data)
-                out = struct.pack('ffff', K[0], K[1], K[2], K[3])
-                self._pi.bsc_i2c(self.I2C_ADDR, out)
+            if self.mode == 'RLS':
+                s, b, d = self._pi.bsc_i2c(self.I2C_ADDR)
+                if b == 16 and not self._received_state:
+                    data = struct.unpack('ffff', d)
+                    print("Incoming:", data)
+                    self._received_state.extend(data)
+                if b == 2 and not self._received_control:
+                    data = struct.unpack('h', d)
+                    print("Incoming:", data)
+                    self._received_control = data
+                if self._recieved_state and self._received_control:
+                    K = fun(self._received_state, self._recieved_control)
+                    out = struct.pack('ffff', K[0], K[1], K[2], K[3])
+                    print("Outgoing:", out)
+                    self._pi.bsc_i2c(self.I2C_ADDR, out)
+                    self._recieved_state.clear()
+                    self._recieved_control.clear()
+            else:
+                print("ADP")
+                s, b, d = self._pi.bsc_i2c(self.I2C_ADDR)
+                if b == 16:
+                    data = struct.unpack('ffff', d)
+                    K = fun(data)
+                    out = struct.pack('ffff', K[0], K[1], K[2], K[3])
+                    self._pi.bsc_i2c(self.I2C_ADDR, out)
 
         self._e = self._pi.event_callback(pigpio.EVENT_BSC, cb)
         self._pi.bsc_i2c(self.I2C_ADDR)
@@ -56,6 +75,8 @@ class Main:
 
         if self.mode == "RLS":
             print("Running in mode", self.mode)
+            self._received_state  = [] 
+            self._received_conrol = []
             self.rls = RLS()
             self.attach_callback(self.rls.main)
             try:
@@ -65,6 +86,8 @@ class Main:
                 self.detach_callback()
         elif self.mode == "ADP":
             print("Running in mode", self.mode)
+            self._expected = 16
+            self._received = 0
             self.adp = ADP()
             self.attach_callback(self.adp.main)
             try:
