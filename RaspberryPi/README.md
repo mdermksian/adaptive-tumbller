@@ -16,6 +16,14 @@ You can find a pinout diagram for the pi here: https://learn.sparkfun.com/tutori
 ### Software Setup
 Some things you'll need to do in advance on the Pi before this will work (just run these once):
 
+Clone this repository onto the Pi:
+```
+sudo apt install git
+git clone <URL-ADDRESS>
+```
+where `<URL ADDRESS>` is this repository (see clone dropdown menu)
+
+
 Install python3 if not already installed! (Usually it will be though)
 ```
 sudo apt-get update
