@@ -22,6 +22,11 @@ class RLS:
         self.initRLS()
         
         self.Tsamp = 0.01 # sampling time (s)
+        
+        self.state = np.ndarray((4, 1))
+        self.ctrl = 0;
+        self.state_pre = np.ndarray((4, 1))
+        self.ctrl_pre = 0;
     
     
     def computeAB(self):
@@ -59,20 +64,20 @@ class RLS:
         self.delta = np.ndarray((4, 1))
     
     
-    def updateRLS(self, meas, ctrl):
-        self.phi[0:2, 1] = self.Tsamp * meas[1:3, 0]
-        self.phi[4, 1] = self.Tsamp * ctrl
-        self.phi[2:4, 3] = self.Tsamp * meas[1:3, 0]
-        self.phi[5, 3] = self.Tsamp * ctrl
+    def updateRLS(self):
+        self.phi[0:2, 1] = self.Tsamp * self.state_pre[1:3, 0]
+        self.phi[4, 1] = self.Tsamp * self.ctrl_pre
+        self.phi[2:4, 3] = self.Tsamp * self.state_pre[1:3, 0]
+        self.phi[5, 3] = self.Tsamp * self.ctrl_pre
         
-        self.delta[0, 0] = meas[0, 0] + self.Tsamp * meas[1, 0]
-        self.delta[1, 0] = meas[1, 0]
-        self.delta[2, 0] = meas[2, 0] + self.Tsamp * meas[3, 0]
-        self.delta[3, 0] = meas[3, 0]
+        self.delta[0, 0] = self.state_pre[0, 0] + self.Tsamp * self.state_pre[1, 0]
+        self.delta[1, 0] = self.state_pre[1, 0]
+        self.delta[2, 0] = self.state_pre[2, 0] + self.Tsamp * self.state_pre[3, 0]
+        self.delta[3, 0] = self.state_pre[3, 0]
         
-        K = self.P @ self.phi @ np.linalg.inv(self.forget * np.identity(4) + self.phi.T @ self.P @ self.phi)
-        self.theta = self.theta + K @ (meas - self.phi.T @ self.theta - self.delta)
-        self.P = (np.identity(6) - K @ self.phi.T) @ self.P / self.forget
+        KN = self.P @ self.phi @ np.linalg.inv(self.forget * np.identity(4) + self.phi.T @ self.P @ self.phi)
+        self.theta = self.theta + KN @ (self.state - self.phi.T @ self.theta - self.delta)
+        self.P = (np.identity(6) - KN @ self.phi.T) @ self.P / self.forget
         
         self.updateModel()
     
@@ -85,18 +90,23 @@ class RLS:
     
     
     def computeLQR(self):
-        K, S, E = lqr(self.A, self.B, self.Qmat, self.Rmat)
+        K, _, _ = lqr(self.A, self.B, self.Qmat, self.Rmat)
         K = np.array(K)
         return K.ravel()
     
     
-    def main(self, state, ctrl):
-        #data_mat = np.array(data)
-        #state = np.expand_dims(data_mat[0:4], 1)
-        #ctrl = data_mat[4] * 8.0 / 255.0 # convert PWM to volts
-        #print("Incoming:", data_mat)
-        state = np.array(state).reshape(-1,1)
-        self.updateRLS(state, ctrl)
+    def main(self, data):
+        data_mat = np.array(data)
+        
+        self.state_pre[:, 0] = self.state[:, 0]
+        self.state_pre = np.copy(self.state);
+        self.ctrl_pre = self.ctrl
+        
+        self.state[1:4, 0] = data_mat[0:3]
+        self.state[0, 0] = self.state_pre[0,0] + self.Tsamp * self.state[1,0]
+        ctrl = data_mat[3] * 8.0 / 255.0 # convert PWM to volts
+        
+        self.updateRLS()
         K = self.computeLQR()
         K = K.tolist()
         return K # <--- This needs to be a python list of 4 floats
