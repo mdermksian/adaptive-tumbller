@@ -6,20 +6,15 @@ typedef union
   byte bytes[16];
 } FLOATUNION;
 
-//FLOATUNION outgoing;
-FLOATUNION incoming;
+typedef union
+{
+  short number;
+  byte bytes[2]; 
+} SHORTUNION;
 
-typedef struct {
-  float state[4];
-  int16_t ctrl;
-} SENDTYPE;
-
-typedef union {
-  SENDTYPE data;
-  byte bytes[18];
-} SENDUNION;
-
-SENDUNION outgoing;
+FLOATUNION state;
+FLOATUNION K;
+SHORTUNION ctrl;
 
 float x = 1.0f;
 
@@ -34,19 +29,24 @@ void loop()
   
   for (int i=0; i<4; i++)
   {
-    outgoing.data.state[i] = x;
+    state.numbers[i] = x;
   }
-  outgoing.data.ctrl = -220;
+  ctrl.number = -220;
+  
 
   Wire.beginTransmission(69); // transmit to device 69
-  Wire.write(outgoing.bytes, 18);
+  Wire.write(state.bytes, 16);
+  Wire.endTransmission();
+  delay(100);
+  Wire.beginTransmission(69);
+  Wire.write(ctrl.bytes, 2);
   Wire.endTransmission();
 
   Wire.requestFrom(69, 16);
   int ctr = 0;
   while (Wire.available()) { // slave may send less than requested
     byte c = Wire.read();
-    incoming.bytes[ctr]=c;
+    K.bytes[ctr]=c;
     if(ctr>=15) break;
     ctr++;
   }
