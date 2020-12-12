@@ -1,52 +1,53 @@
 #include <Wire.h>
 
+#define PI_READY 11
+
 typedef union
 {
-  float numbers[4];
+  float data[4];
   byte bytes[16];
-} FLOATUNION;
+} REC_UNION;
 
-typedef union
-{
-  short number;
-  byte bytes[2]; 
-} SHORTUNION;
+REC_UNION incoming;
 
-FLOATUNION state;
-FLOATUNION K;
-SHORTUNION ctrl;
+typedef struct {
+  float state[3];
+  int16_t ctrl;
+} SEND_STRUCT;
+
+typedef union {
+  SEND_STRUCT data;
+  byte bytes[14];
+} SEND_UNION;
+
+SEND_UNION outgoing;
 
 float x = 1.0f;
 
-void setup()
-{
-   Wire.begin(); // join i2c bus as master
-   Serial.begin(57600);
+void setup() {
+  pinMode(PI_READY, INPUT);
+  Wire.begin(); // join i2c bus as master
+  Serial.begin(57600);
 }
 
-void loop()
-{
+void loop() {
   
-  for (int i=0; i<4; i++)
-  {
-    state.numbers[i] = x;
+  for (int i=0; i<3; i++) {
+    outgoing.data.state[i] = x;
   }
-  ctrl.number = -220;
-  
+  outgoing.data.ctrl = -220;
 
   Wire.beginTransmission(69); // transmit to device 69
-  Wire.write(state.bytes, 16);
+  Wire.write(outgoing.bytes, 14);
   Wire.endTransmission();
-  delay(100);
-  Wire.beginTransmission(69);
-  Wire.write(ctrl.bytes, 2);
-  Wire.endTransmission();
+
+  while(!digitalRead(PI_READY));  // wait for RPi to prepare gains
 
   Wire.requestFrom(69, 16);
   int ctr = 0;
   while (Wire.available()) { // slave may send less than requested
     byte c = Wire.read();
-    K.bytes[ctr]=c;
+    incoming.bytes[ctr]=c;
     if(ctr>=15) break;
     ctr++;
   }
