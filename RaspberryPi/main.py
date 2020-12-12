@@ -37,8 +37,9 @@ class Main:
 
     def attach_callback(self, fun):
         def cb(id, tick):
-            GPIO.output(20, GPIO.LOW)
             if self.mode == 'RLS':
+                GPIO.output(21, GPIO.LOW)
+                GPIO.output(20, GPIO.LOW)
                 s, b, d = self._pi.bsc_i2c(self.I2C_ADDR)
                 if(b == 14):
                     data = struct.unpack('fffh', d)
@@ -60,6 +61,8 @@ class Main:
 #                     self._pi.bsc_i2c(self.I2C_ADDR, out)
 #                     self._recieved_state.clear()
 #                     self._recieved_control.clear()
+                GPIO.output(21, GPIO.HIGH)
+                GPIO.output(20, GPIO.HIGH)
             else:
                 print("ADP")
                 s, b, d = self._pi.bsc_i2c(self.I2C_ADDR)
@@ -68,7 +71,6 @@ class Main:
                     K = fun(data)
                     out = struct.pack('ffff', K[0], K[1], K[2], K[3])
                     self._pi.bsc_i2c(self.I2C_ADDR, out)
-            GPIO.output(20, GPIO.HIGH)
 
         self._e = self._pi.event_callback(pigpio.EVENT_BSC, cb)
         self._pi.bsc_i2c(self.I2C_ADDR)
@@ -82,7 +84,9 @@ class Main:
         self.pigpio_setup()
         
         GPIO.setmode(GPIO.BCM)
-        GPIO.setup(20, GPIO.OUT)
+        GPIO.setup(21, GPIO.OUT)   # to arduino
+        GPIO.output(21, GPIO.HIGH)
+        GPIO.setup(20, GPIO.OUT)   # for debugging
         GPIO.output(20, GPIO.HIGH)
 
         if self.mode == "RLS":

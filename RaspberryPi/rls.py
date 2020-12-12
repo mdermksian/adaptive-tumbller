@@ -1,5 +1,6 @@
 import numpy as np
 from control import lqr
+from scipy.linalg import solve_discrete_are
 
 class RLS:
     def __init__(self):
@@ -24,7 +25,6 @@ class RLS:
         self.Tsamp = 0.01 # sampling time (s)
         
         self.state = np.ndarray((4, 1))
-        self.ctrl = 0;
         self.state_pre = np.ndarray((4, 1))
         self.ctrl_pre = 0;
     
@@ -100,11 +100,10 @@ class RLS:
         
         self.state_pre[:, 0] = self.state[:, 0]
         self.state_pre = np.copy(self.state);
-        self.ctrl_pre = self.ctrl
         
         self.state[1:4, 0] = data_mat[0:3]
         self.state[0, 0] = self.state_pre[0,0] + self.Tsamp * self.state[1,0]
-        ctrl = data_mat[3] * 8.0 / 255.0 # convert PWM to volts
+        self.ctrl_pre = data_mat[3] * 8.0 / 255.0 # convert PWM to volts
         
         self.updateRLS()
         K = self.computeLQR()
