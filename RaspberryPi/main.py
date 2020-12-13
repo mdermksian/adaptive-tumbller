@@ -90,17 +90,17 @@ class Main:
         GPIO.output(20, GPIO.HIGH)
 
         if self.mode == "RLS":
-            print("Running in mode", self.mode)
             self._received_state  = [] 
             self._received_conrol = []
             self.rls = RLS()
             self.attach_callback(self.rls.main)
-        elif self.mode == "ADP":
             print("Running in mode", self.mode)
+        elif self.mode == "ADP":
             self._expected = 16
             self._received = 0
             self.adp = ADP()
             self.attach_callback(self.adp.main)
+            print("Running in mode", self.mode)
         else:
             print("Invalid mode")
             exit()

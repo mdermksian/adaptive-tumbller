@@ -1,6 +1,5 @@
 import numpy as np
 from control import lqr
-from scipy.linalg import solve_discrete_are
 
 class RLS:
     def __init__(self):
@@ -62,6 +61,8 @@ class RLS:
         
         self.phi = np.zeros((6, 4))
         self.delta = np.ndarray((4, 1))
+        
+        self.first = True
     
     
     def updateRLS(self):
@@ -98,14 +99,17 @@ class RLS:
     def main(self, data):
         data_mat = np.array(data)
         
-        self.state_pre[:, 0] = self.state[:, 0]
         self.state_pre = np.copy(self.state);
         
         self.state[1:4, 0] = data_mat[0:3]
         self.state[0, 0] = self.state_pre[0,0] + self.Tsamp * self.state[1,0]
         self.ctrl_pre = data_mat[3] * 8.0 / 255.0 # convert PWM to volts
         
-        self.updateRLS()
+        if(self.first):
+            self.first = False
+        else:
+            self.updateRLS()
+            
         K = self.computeLQR()
         K = K.tolist()
         return K # <--- This needs to be a python list of 4 floats
