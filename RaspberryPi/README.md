@@ -9,8 +9,12 @@ Raspberry PI     | Arduino
 ---------------------------------
 Pin 12 (GPIO 18) | A4 (SDA) <-- or Sam's board SDA
 Pin 35 (GPIO 19) | A5 (SCL) <-- or Sam's board SCL
+Pin 40 (GPIO 21) | 11 (Trig)
 Any ground pin   | Any ground pin
 ```
+
+For pin 11 on the Arduino, it may be a good idea to remove the ultrasonic sensor from the robot so it doesn't inadvertently mess with the signals. This hasn't been tested though.
+
 You can find a pinout diagram for the pi here: https://learn.sparkfun.com/tutorials/raspberry-gpio/gpio-pinout obviously use the diagram that matches your PI (should be the bigger header pins).
 
 ### Software Setup
