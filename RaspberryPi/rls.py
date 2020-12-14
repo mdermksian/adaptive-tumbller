@@ -109,7 +109,7 @@ class RLS:
             self.first = False
         else:
             self.updateRLS()
-            
+        
         K = self.computeLQR()
         K = K.tolist()
         return K # <--- This needs to be a python list of 4 floats

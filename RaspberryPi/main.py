@@ -34,18 +34,16 @@ class Main:
         """Cleans up gpio activity"""
         self._pi.bsc_i2c(0)
         self._pi.stop()
-
-    def attach_callback(self, fun):
-        def cb(id, tick):
-            if self.mode == 'RLS':
-                GPIO.output(21, GPIO.LOW)
-                GPIO.output(20, GPIO.LOW)
-                s, b, d = self._pi.bsc_i2c(self.I2C_ADDR)
-                if(b == 14):
-                    data = struct.unpack('fffh', d)
-                    K = fun(data)
-                    out = struct.pack('ffff', K[0], K[1], K[2], K[3])
-                    self._pi.bsc_i2c(self.I2C_ADDR, out)
+        
+    def cb_rls(self, id, tick):
+        GPIO.output(21, GPIO.LOW)
+        GPIO.output(20, GPIO.LOW)
+        s, b, d = self._pi.bsc_i2c(self.I2C_ADDR)
+        if(b == 14):
+            data = struct.unpack('fffh', d)
+            K = self.rls.main(data)
+            out = struct.pack('ffff', K[0], K[1], K[2], K[3])
+            self._pi.bsc_i2c(self.I2C_ADDR, out)
 #                 if b == 16 and not self._received_state:
 #                     data = struct.unpack('ffff', d)
 #                     print("Incoming:", data)
@@ -61,18 +59,20 @@ class Main:
 #                     self._pi.bsc_i2c(self.I2C_ADDR, out)
 #                     self._recieved_state.clear()
 #                     self._recieved_control.clear()
-                GPIO.output(21, GPIO.HIGH)
-                GPIO.output(20, GPIO.HIGH)
-            else:
-                print("ADP")
-                s, b, d = self._pi.bsc_i2c(self.I2C_ADDR)
-                if b == 16:
-                    data = struct.unpack('ffff', d)
-                    K = fun(data)
-                    out = struct.pack('ffff', K[0], K[1], K[2], K[3])
-                    self._pi.bsc_i2c(self.I2C_ADDR, out)
+        GPIO.output(21, GPIO.HIGH)
+        GPIO.output(20, GPIO.HIGH)
+    
+    def cb_adp(self, id, tick):
+        print("ADP")
+        s, b, d = self._pi.bsc_i2c(self.I2C_ADDR)
+        if b == 16:
+            data = struct.unpack('ffff', d)
+            K = self.adp.main(data)
+            out = struct.pack('ffff', K[0], K[1], K[2], K[3])
+            self._pi.bsc_i2c(self.I2C_ADDR, out)
 
-        self._e = self._pi.event_callback(pigpio.EVENT_BSC, cb)
+    def attach_callback(self, fun):
+        self._e = self._pi.event_callback(pigpio.EVENT_BSC, fun)
         self._pi.bsc_i2c(self.I2C_ADDR)
 
     def detach_callback(self):
@@ -93,13 +93,13 @@ class Main:
             self._received_state  = [] 
             self._received_conrol = []
             self.rls = RLS()
-            self.attach_callback(self.rls.main)
+            self.attach_callback(self.cb_rls)
             print("Running in mode", self.mode)
         elif self.mode == "ADP":
             self._expected = 16
             self._received = 0
             self.adp = ADP()
-            self.attach_callback(self.adp.main)
+            self.attach_callback(self.cb_adp)
             print("Running in mode", self.mode)
         else:
             print("Invalid mode")
