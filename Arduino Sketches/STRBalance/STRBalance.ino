@@ -56,7 +56,7 @@ unsigned long time_curr;            // current time
 unsigned long time_prev = 0;        // previous loop time
 unsigned long startTime_left = 0;
 unsigned long startTime_right = 0;
-const int sampling_rate = 50;        // main loop period (ms)
+const int sampling_rate = 15;        // main loop period (ms)
 const float sampling_rate_s = sampling_rate / 1000.0; // main loop period (s)
 
 // Speed variables
@@ -74,25 +74,25 @@ const float lat_dist = 0.194;   // end-to-end wheel distance (m)
 const float alpha = 0.97;           // complementary filter coefficient
 const float c_alpha = 1.0 - alpha;  // complementary filter coefficient complement
 
-float tilt_ang = 0; // tilt angle estimate
+volatile float tilt_ang = 0; // tilt angle estimate
 
 // Tilt Angular Velocity Estimation
-float tilt_vel = 0; // tilt angular velocity estimate using direct gyroscope measurement
+volatile float tilt_vel = 0; // tilt angular velocity estimate using direct gyroscope measurement
 
 // Robot Position Estimation
-float pos = 0;
-float vel = 0;
+volatile float pos = 0;
+volatile float vel = 0;
 
 // LQR Controller Parameters
-float K[] = {-0.70710678, -30.217762, 6330.7164, 124.35118};
+volatile float K[] = {-0.70710678, -30.217762, 6330.7164, 124.35118};
 
 const int16_t ctlr_LB = -255; // controller saturation lower bound
 const int16_t ctlr_UB = 255;  // controller saturation upper bound
 
-int16_t left_out = 0;
-int16_t right_out = 0;
-int16_t control_effort = 0;
-int16_t control_effort_pre = 0;
+volatile int16_t left_out = 0;
+volatile int16_t right_out = 0;
+volatile int16_t control_effort = 0;
+volatile int16_t control_effort_pre = 0;
 
 // Raspberry Pi Interfacing
 const uint8_t rpi_addr = 69;   // Raspberry Pi I2C address
@@ -120,11 +120,13 @@ typedef union {
 
 SEND_UNION outgoing;  // send union
 
+volatile bool first = true;
+
 // Right Wheel Dynamics Matching
 DigitalTF<int16_t, int16_t> rw_comp;
-// 5 ms sampling period
-const float comp_B[] = {0.35605129, -0.32377994};
-const float comp_A[] = {1.0, -0.96314955};
+// 15 ms sampling period
+const float comp_B[] = {0.34623400, -0.25294376};
+const float comp_A[] = {1.0, -0.89347248};
 
 /********************Initialization settings********************/
 void setup() {
@@ -432,7 +434,7 @@ void estimateTiltVel() {
 }
 
 void estimatePosition() {
-  vel = wheel_rad * motor_left_ang_vel;
+  vel = wheel_rad * (motor_left_ang_vel + motor_right_ang_vel) / 2.0;
   pos += vel * sampling_rate_s;
 }
 
@@ -442,8 +444,10 @@ void updateCtlr() {
   control_effort = min(max(out, ctlr_LB), ctlr_UB);
 }
 
+
+
 void sendToPi() {
-  while(!digitalRead(PI_READY));  // wait for RPi to prepare gains
+//  while(!digitalRead(PI_READY));  // wait for RPi to prepare gains
   
   outgoing.data.state[0] = vel;
   outgoing.data.state[1] = tilt_ang;
@@ -457,7 +461,7 @@ void sendToPi() {
 }
 
 void readFromPi() {
-  while(!digitalRead(PI_READY));  // wait for RPi to prepare gains
+//  while(!digitalRead(PI_READY));  // wait for RPi to prepare gains
 
   Wire.requestFrom(rpi_addr, 16);
   size_t ctr = 0;
@@ -493,17 +497,23 @@ void mainfunc() {
   estimateTiltVel();
   estimatePosition();
 
-  readFromPi();
+  if(first) {
+    first = false;
+  } else {
+    readFromPi();
+    delayMicroseconds(1500);
+  }
 
   control_effort_pre = control_effort;
   updateCtlr();
   left_out = control_effort;
   right_out = rw_comp.update(left_out);
   
-//  SetLeftWheelSpeed(left_out);
-//  SetRightWheelSpeed(right_out);
+  SetLeftWheelSpeed(left_out);
+  SetRightWheelSpeed(right_out);
 
   sendToPi();
+  delayMicroseconds(6500);
   
 //  printMyData();
   
