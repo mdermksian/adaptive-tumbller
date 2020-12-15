@@ -21,7 +21,7 @@ class RLS:
         self.computeAB()
         self.initRLS()
         
-        self.Tsamp = 0.01 # sampling time (s)
+        self.Tsamp = 0.015 # sampling time (s)
         
         self.state = np.ndarray((4, 1))
         self.state_pre = np.ndarray((4, 1))
