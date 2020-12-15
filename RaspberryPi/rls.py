@@ -16,8 +16,12 @@ class RLS:
         self.r = 0.0335
         self.g = 9.81
         
-        self.Qmat = np.diag([0.01, 0.01, 1000, 1])
-        self.Rmat = 0.1
+#         self.Qmat = np.diag([0.01, 0.01, 1000, 1]) # Mike's
+#         self.Rmat = 0.1
+#         self.Qmat = np.diag([1, 1, 8e7, 3e4]) # Sam's
+#         self.Rmat = 2
+        self.Qmat = np.diag([1, 1, 8e7, 3e4])
+        self.Rmat = 2
         self.computeAB()
         self.initRLS()
         
@@ -42,7 +46,7 @@ class RLS:
             [(self.Ipend+self.mpend*self.L**2)/denom],
             [0],
             [self.mpend*self.L/denom]
-        ])
+        ]) * 2*self.kT/(self.R*self.r) * 255/8.0
     
     
     def initRLS(self):
@@ -103,7 +107,10 @@ class RLS:
         
         self.state[1:4, 0] = data_mat[0:3]
         self.state[0, 0] = self.state_pre[0,0] + self.Tsamp * self.state[1,0]
-        self.ctrl_pre = data_mat[3] * 8.0 / 255.0 # convert PWM to volts
+#         self.ctrl_pre = data_mat[3] * 8.0 / 255.0 # convert PWM to volts
+        self.ctrl_pre = data_mat[3]
+        
+#         print(data_mat[3])
         
         if(self.first):
             self.first = False

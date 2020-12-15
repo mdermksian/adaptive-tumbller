@@ -4,7 +4,8 @@ import struct
 import pigpio
 
 from rls import RLS
-from adp import ADP
+# from adp import ADP
+from adp_data_collect import ADP
 
 
 def debug_helper(s, b, first):
@@ -42,7 +43,6 @@ class Main:
         self._pi.stop()
         
     def cb_rls(self, id, tick):
-#         self._pi.write(21, 0)
         s, b, d = self._pi.bsc_i2c(self.I2C_ADDR)
 #         debug_helper(s, b, '1')
         if(b == 14):
@@ -54,7 +54,6 @@ class Main:
             print(self.cnt)
             self.cnt += 1
 #             debug_helper(s, b, '2')
-#         self._pi.write(21, 1)
     
     def cb_adp(self, id, tick):
         print("ADP")
@@ -76,9 +75,6 @@ class Main:
     def run(self):
         """Main function"""
         self.pigpio_setup()
-        
-        self._pi.set_mode(21, pigpio.OUTPUT)
-        self._pi.write(21, 1)
 
         if self.mode == "RLS":
             self.rls = RLS()
