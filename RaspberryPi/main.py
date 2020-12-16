@@ -47,11 +47,11 @@ class Main:
 #         debug_helper(s, b, '1')
         if(b == 14):
             data = struct.unpack('fffh', d)
-            K = self.rls.main(data)
+            K = self.rls.main(data, self.cnt)
             out = struct.pack('ffff', K[0], K[1], K[2], K[3])
             self._pi.bsc_i2c(self.I2C_ADDR, out)
 #             s, b, d = self._pi.bsc_i2c(self.I2C_ADDR, out)
-            print(self.cnt)
+#            print(self.cnt)
             self.cnt += 1
 #             debug_helper(s, b, '2')
     
