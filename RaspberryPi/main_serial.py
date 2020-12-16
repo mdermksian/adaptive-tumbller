@@ -13,6 +13,7 @@ class Main:
             self.incoming_size = 14
             self.decode_string = 'fffh'
             self.program = RLS()
+            print('Running RLS')
         elif mode == "ADP":
             self.incoming_size = 16
             self.decode_string = 'ffff'
@@ -25,18 +26,24 @@ class Main:
         self.ser.flush()
 
     def run(self):
-        while True:
-            if self.ser.in_waiting > 0:
-                incoming = self.ser.read(self.incoming_size)
-                if len(incoming) != self.incoming_size:
-                    continue;
-                inp = struct.unpack(self.decode_string, incoming)
-                print("Incoming:", inp)
-                K = self.program.main(inp, self.cnt)
-                self.cnt += 1
-                print("Outgoing:", K)
-                outgoing = struct.pack("ffff", K[0], K[1], K[2], K[3])
-                self.ser.write(outgoing)
+        try:
+            while True:
+                if self.ser.in_waiting > 0:
+                    incoming = self.ser.read(self.incoming_size)
+                    if len(incoming) != self.incoming_size:
+                        continue;
+                    inp = struct.unpack(self.decode_string, incoming)
+                    print("Incoming:", inp)
+                    K = self.program.main(inp, self.cnt)
+                    self.cnt += 1
+                    print("Outgoing:", K)
+                    outgoing = struct.pack("ffff", K[0], K[1], K[2], K[3])
+                    self.ser.write(outgoing)
+        except KeyboardInterrupt:
+            pass
+        
+        self.program.cleanup()
+        print('Finishing')
 
         
 if __name__ == "__main__":
