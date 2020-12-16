@@ -434,7 +434,8 @@ void estimateTiltVel() {
 }
 
 void estimatePosition() {
-  vel = wheel_rad * (motor_left_ang_vel + motor_right_ang_vel) / 2.0;
+//  vel = wheel_rad * (motor_left_ang_vel + motor_right_ang_vel) / 2.0;
+  vel = wheel_rad * motor_right_ang_vel;
   pos += vel * sampling_rate_s;
 }
 
@@ -454,22 +455,30 @@ void sendToPi() {
   outgoing.data.state[2] = tilt_vel;
 //  outgoing.data.ctrl = control_effort;
   outgoing.data.ctrl = control_effort_pre;
+
+  Serial.write(outgoing.bytes, 14);
   
-  Wire.beginTransmission(rpi_addr);
-  Wire.write(outgoing.bytes, 14);
-  Wire.endTransmission();
+//  Wire.beginTransmission(rpi_addr);
+//  Wire.write(outgoing.bytes, 14);
+//  Wire.endTransmission();
 }
 
 void readFromPi() {
 //  while(!digitalRead(PI_READY));  // wait for RPi to prepare gains
 
-  Wire.requestFrom(rpi_addr, 16);
-  size_t ctr = 0;
-  while (Wire.available()) { // slave may send less than requested
-    byte c = Wire.read();
-    incoming.bytes[ctr++] = c;
-    if(ctr >= 16) break;
-  }
+//  Wire.requestFrom(rpi_addr, 16);
+//  size_t ctr = 0;
+//  while (Wire.available()) { // slave may send less than requested
+//    byte c = Wire.read();
+//    incoming.bytes[ctr++] = c;
+//    if(ctr >= 16) break;
+//  }
+  Serial.readBytes(incoming.bytes, 16);
+
+  float eps = 1e-4;
+  if(incoming.data[0] < eps || incoming.data[1] < eps || incoming.data[2] < eps || incoming.data[3] < eps) return;
+  if(isnan(incoming.data[0]) || isnan(incoming.data[1]) || isnan(incoming.data[2]) || isnan(incoming.data[3])) return;
+  if(incoming.data[0] == incoming.data[1] && incoming.data[0] == incoming.data[2] && incoming.data[0] == incoming.data[3]) return;
 
   K[0] = incoming.data[0];
   K[1] = incoming.data[1];
@@ -501,17 +510,20 @@ void mainfunc() {
     first = false;
   } else {
     readFromPi();
-    delayMicroseconds(1500);
+    delayMicroseconds(2000);
   }
 
   control_effort_pre = control_effort;
   updateCtlr();
+  
   left_out = control_effort;
-  right_out = rw_comp.update(left_out);
+  right_out = left_out;
   
   SetLeftWheelSpeed(left_out);
   SetRightWheelSpeed(right_out);
 
+//  Wire.requestFrom(rpi_addr, 16);
+//  while(Wire.available()) Wire.read();
   sendToPi();
   delayMicroseconds(6500);
   
