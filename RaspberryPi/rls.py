@@ -27,6 +27,12 @@ class RLS:
         self.state = np.zeros((4, 1))
         self.state_pre = np.zeros((4, 1))
         self.ctrl_pre = 0;
+        
+        self.file = open('/home/pi/Desktop/RLS_data.csv', 'w')
+        
+    
+    def cleanup(self):
+        self.file.close()
     
     
     def computeAB(self):
@@ -116,5 +122,8 @@ class RLS:
         else:
             K = self.computeLQR()
         K = K.tolist()
+        
+        np.savetxt(self.file, self.state.T, delimiter=',')
+        
         return K # <--- This needs to be a python list of 4 floats
     
