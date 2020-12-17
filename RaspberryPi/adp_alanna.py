@@ -1,30 +1,45 @@
-
+import torch
+import torch.nn as nn
+import numpy as np
 class ADP:
-    def __init__(self, controllers, seq_len, model_filename):
+    def __init__(self):
         self.nstates = 4
-        self.seq_len = seq_len
+        self.seq_len = 500
         self.Ks = []
-        for i in range(len(controllers)):
-            self.Ks.append(np.loadtxt('K' + str(controllers[i]) + '.txt').reshape((1,4)))
-        self.model = Model(nstates=self.nstates, noutputs=len(self.Ks), seq_len=self.seq_len)
-        self.model.load_state_dict(model_filename)
-        self.data_seq_list = []
-    
-    def main(s, b, d):
-        print("Printing from ADP")
-        print(d[:-1])
-        self.data_seq_list = [d.reshape((1,self.nstates)))] + self.data_seq_list
-        if (len(self.data_seq_list) > self.seq_len):
-            self.data_seq_list.pop()
-            self.data_seq = np.stack(self.data_seq_list, axis=0)
+        # for i in range(len(controllers)):
+        #     self.Ks.append(np.loadtxt('K' + str(controllers[i]) + '.txt').reshape((1,4)))
+        self.Ks.append(np.array((-0.00288150139069816,-0.108593947376385,26.3953358864335,1.88977789448912) ) )    # K0 (no weights)
+        self.Ks.append(np.array((-0.00289199476972477,-0.109318875767478,26.7396667177963,1.95468611771592) ) )    # K2
+        self.Ks.append(np.array((-0.00290101208252616,-0.10999844278361,27.0779262509664,2.01712436203214) ) )     # K4
+        self.Ks.append(np.array((-0.00290881495680823,-0.110640598087607,27.4112553504243,2.07718961558237) ) )     # K6
 
-        out = self.model(self.data_seq)
-        pred = torch.argmax(out, dim=1)
+
+        self.model = Model(nstates=self.nstates, noutputs=len(self.Ks), seq_len=self.seq_len)
+        self.model.load_state_dict(torch.load('model.pt'))
+
+        self.all_states = []
+        self.model_input = []
+    
+    def main(self,state):
+        #print("Printing from ADP")
+        state = np.array(state)
+        self.all_states.append(state.reshape((1,self.nstates)))
+        print(np.array(self.all_states).shape)
+        pred = 0
+        # print(d[:-1])
+        # self.data_seq_list = [d.reshape((1,self.nstates)))] + self.data_seq_list
+        if (len(self.all_states) > 10):
+            self.all_states.pop(0)
+            data_seq = np.stack(self.all_states, axis=2)
+            print(data_seq.shape)
+            out = self.model(data_seq)
+            pred = torch.argmax(out, dim=1)
+            del data_seq
+            del out
 
         self.K = self.Ks[pred]
-
-        del self.data_seq
-        del out
+        
+            
         del pred
 
         return self.K
@@ -45,6 +60,7 @@ class Model(nn.Module):
         self.fc2 = nn.Linear(noutputs*64, noutputs)
     
     def forward(self, x):
+        x = torch.FloatTensor(x)
         x = x.unsqueeze(1)
         out = self.conv1(x)
         out = self.bn1(out)
@@ -54,7 +70,9 @@ class Model(nn.Module):
         out = self.bn2(out)
         out = self.relu2(out)
         out = self.drop2(out)
+        print(out.shape)
         out = self.flat(out)
+        print(out.shape)
         out = self.fc1(out)
         out = self.fc2(out)
         return out
