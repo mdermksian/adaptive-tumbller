@@ -16,20 +16,23 @@ class RLS:
         self.r = 0.0335
         self.g = 9.81
         
-#         self.Qmat = np.diag([0.01, 0.01, 1000, 1]) # Mike's
-#         self.Rmat = 0.1
-#         self.Qmat = np.diag([1, 1, 8e7, 3e4]) # Sam's
-#         self.Rmat = 2
-        self.Qmat = np.diag([1, 1, 8e7, 3e4])
+        self.Qmat = np.diag([1, 1, 4e6, 3e1])
         self.Rmat = 2
         self.computeAB()
         self.initRLS()
-        
+        self.K = self.computeLQR()
+
         self.Tsamp = 0.015 # sampling time (s)
         
-        self.state = np.ndarray((4, 1))
-        self.state_pre = np.ndarray((4, 1))
+        self.state = np.zeros((4, 1))
+        self.state_pre = np.zeros((4, 1))
         self.ctrl_pre = 0;
+        
+        self.file = open('/home/pi/Desktop/RLS_data.csv', 'w')
+        
+    
+    def cleanup(self):
+        self.file.close()
     
     
     def computeAB(self):
@@ -93,16 +96,14 @@ class RLS:
         self.B[1, 0] = self.theta[4, 0]
         self.B[3, 0] = self.theta[5, 0]
     
-    
     def computeLQR(self):
         K, _, _ = lqr(self.A, self.B, self.Qmat, self.Rmat)
         K = np.array(K)
         return K.ravel()
     
     
-    def main(self, data):
+    def main(self, data, cnt):
         data_mat = np.array(data)
-        
         self.state_pre = np.copy(self.state);
         
         self.state[1:4, 0] = data_mat[0:3]
@@ -111,13 +112,18 @@ class RLS:
         self.ctrl_pre = data_mat[3]
         
 #         print(data_mat[3])
-        
         if(self.first):
             self.first = False
         else:
             self.updateRLS()
         
-        K = self.computeLQR()
+        if(cnt < 500):
+            K = self.K
+        else:
+            K = self.computeLQR()
         K = K.tolist()
+        
+        np.savetxt(self.file, self.state.T, delimiter=',')
+        
         return K # <--- This needs to be a python list of 4 floats
     
