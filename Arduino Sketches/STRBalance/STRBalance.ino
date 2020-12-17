@@ -5,7 +5,6 @@
 #include "MPU6050.h"
 #include <SoftwareSerial.h>
 #include <math.h>
-#include "DigitalTF.h"
 #include "EncoderI2C.h"
 
 // Macros
@@ -66,6 +65,9 @@ const int encoder_max_time = 0;
 float motor_left_ang_vel = 0;
 float motor_right_ang_vel = 0;
 
+unsigned long time_start;
+const unsigned long time_stop_dist = 12000;
+
 // Physical Dimensions
 const float wheel_rad = 0.0335; // wheel radius (m)
 const float lat_dist = 0.194;   // end-to-end wheel distance (m)
@@ -122,11 +124,14 @@ SEND_UNION outgoing;  // send union
 
 volatile bool first = true;
 
-// Right Wheel Dynamics Matching
-DigitalTF<int16_t, int16_t> rw_comp;
-// 15 ms sampling period
-const float comp_B[] = {0.34623400, -0.25294376};
-const float comp_A[] = {1.0, -0.89347248};
+const uint8_t window_pow = 3;
+const size_t window_length = 1 << window_pow;
+volatile size_t window_ind = 0;
+volatile long vel_window[window_length];
+const float ref_gain = 4e-5;
+const float tilt_ref_LB = -0.3;
+const float tilt_ref_UB = 0.1;
+volatile float tilt_ref = 0.0;
 
 /********************Initialization settings********************/
 void setup() {
@@ -163,8 +168,10 @@ void setup() {
   mpu.initialize(); // initialization MPU6050
   delay(2);         // buffer 2 ms
 
-  // Initialize right wheel compensator
-  rw_comp.init(comp_B, sizeof(comp_B)/sizeof(float), comp_A, sizeof(comp_A)/sizeof(float));
+  // Reset velocity window
+  for(size_t i = 0; i < window_length; ++i) {
+    vel_window[i] = 0;
+  }
 
   // IMU calibration
 //  BTserial.println("Starting Delay");
@@ -186,6 +193,8 @@ void setup() {
   // Start main loop timer
   MsTimer2::count = MsTimer2::msecs - 1;  // set so next tick triggers overflow
   MsTimer2::start();                      // start timer
+
+  time_start = millis();
 }
 
 /***************************************************************************************/
@@ -265,11 +274,28 @@ void readEncoder() {
   left_enc_obj.readEncoder();
   right_enc_obj.readEncoder();
 
-  motor_left_ang_vel = TWO_PI * left_enc_obj.getChange() * millirev_per_pulse / (time_curr - startTime_left); // calculate angular velocity
+  left_encoder = left_enc_obj.getChange();
+  motor_left_ang_vel = TWO_PI * left_encoder * millirev_per_pulse / (time_curr - startTime_left); // calculate angular velocity
   startTime_left = time_curr; // set new encoder start time
 
-  motor_right_ang_vel = TWO_PI * right_enc_obj.getChange() * millirev_per_pulse / (time_curr - startTime_right);
+  right_encoder = right_enc_obj.getChange();
+  motor_right_ang_vel = TWO_PI * right_encoder * millirev_per_pulse / (time_curr - startTime_right);
   startTime_right = time_curr;
+}
+
+void estimateEquilibrium() {
+  vel_window[window_ind++] = (left_encoder + right_encoder) >> 1;
+  if(window_ind >= window_length) {
+    window_ind = 0;
+  }
+
+  long sum = 0;
+  for(size_t i = 0; i < window_length; ++i) {
+    sum += vel_window[i];
+  }
+  
+  tilt_ref -= ref_gain * (float) (sum >> window_pow);
+  tilt_ref = min(max(tilt_ref, tilt_ref_LB), tilt_ref_UB);  // anti-windup
 }
 
 /*
@@ -347,6 +373,16 @@ void printMyData() {
   BTserial.print(motor_left);
   BTserial.print('\r');
   BTserial.print('\n');
+}
+
+void printController() {
+  BTserial.print(K[0]);
+  BTserial.print('\t');
+  BTserial.print(K[1]);
+  BTserial.print('\t');
+  BTserial.print(K[2]);
+  BTserial.print('\t');
+  BTserial.println(K[3]);
 }
 
 /*
@@ -440,7 +476,8 @@ void estimatePosition() {
 }
 
 void updateCtlr() {
-  float outf = K[0]*pos + K[1]*vel + K[2]*tilt_ang + K[3]*tilt_vel;
+//  float outf = K[0]*pos + K[1]*vel + K[2]*tilt_ang + K[3]*tilt_vel;
+  float outf = K[0]*pos + K[1]*vel + K[2]*(tilt_ang - tilt_ref) + K[3]*tilt_vel;
   int16_t out = (int16_t) (outf + SIGN(outf)*0.5);
   control_effort = min(max(out, ctlr_LB), ctlr_UB);
 }
@@ -476,9 +513,9 @@ void readFromPi() {
   Serial.readBytes(incoming.bytes, 16);
 
   float eps = 1e-4;
-  if(incoming.data[0] < eps || incoming.data[1] < eps || incoming.data[2] < eps || incoming.data[3] < eps) return;
-  if(isnan(incoming.data[0]) || isnan(incoming.data[1]) || isnan(incoming.data[2]) || isnan(incoming.data[3])) return;
-  if(incoming.data[0] == incoming.data[1] && incoming.data[0] == incoming.data[2] && incoming.data[0] == incoming.data[3]) return;
+//  if(incoming.data[0] < eps || incoming.data[1] < eps || incoming.data[2] < eps || incoming.data[3] < eps) return;
+//  if(isnan(incoming.data[0]) || isnan(incoming.data[1]) || isnan(incoming.data[2]) || isnan(incoming.data[3])) return;
+//  if(incoming.data[0] == incoming.data[1] && incoming.data[0] == incoming.data[2] && incoming.data[0] == incoming.data[3]) return;
 
   K[0] = incoming.data[0];
   K[1] = incoming.data[1];
@@ -506,6 +543,8 @@ void mainfunc() {
   estimateTiltVel();
   estimatePosition();
 
+  estimateEquilibrium();
+
   if(first) {
     first = false;
   } else {
@@ -515,8 +554,14 @@ void mainfunc() {
 
   control_effort_pre = control_effort;
   updateCtlr();
-  
-  left_out = control_effort;
+
+  if(time_curr - time_start <= time_stop_dist) {
+    float u_distf = 100 * sin(2.0*time_curr);
+    int16_t u_dist = (int16_t) (u_distf + SIGN(u_distf)*0.5);
+    left_out =  min(max(control_effort+u_dist, -255), 255);
+  } else {
+    left_out = control_effort;
+  }
   right_out = left_out;
   
   SetLeftWheelSpeed(left_out);
@@ -525,7 +570,10 @@ void mainfunc() {
 //  Wire.requestFrom(rpi_addr, 16);
 //  while(Wire.available()) Wire.read();
   sendToPi();
+//  printController();
   delayMicroseconds(6500);
+
+//  BTserial.println(tilt_ref);
   
 //  printMyData();
   
