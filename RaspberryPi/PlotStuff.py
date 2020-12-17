@@ -1,11 +1,39 @@
+import sys
 import numpy as np
 import matplotlib.pyplot as plt
 
-file = open('/home/pi/Desktop/RLS_data.csv', 'r')
+# USAGE
+# python3 PlotStuff.py [folder on desktop] [data]
+# python3 PlotStuff.py RobotData theta
+
+if(len(sys.argv) <= 2):
+    sys.exit()
+
+if(sys.argv[2] == 'theta'):
+    n_plots = 6
+elif(sys.argv[2] == 'state'):
+    n_plots = 4
+elif(sys.argv[2] == 'ctrl'):
+    n_plots = 1
+elif(sys.argv[2] == 'K'):
+    n_plots = 4
+else:
+    sys.exit()
+
+file = open('/home/pi/Desktop/' + sys.argv[1] + '/RLS_' + sys.argv[2] + '.csv', 'r')
+
+# file = open('/home/pi/Desktop/RobotData/RLS_theta.csv', 'r')
+# file = open('/home/pi/Desktop/RobotData/RLS_state.csv', 'r')
+# file = open('/home/pi/Desktop/RobotData/RLS_ctrl.csv', 'r')
+# file = open('/home/pi/Desktop/RobotData/RLS_K.csv', 'r')
+
 data = np.genfromtxt(file, delimiter=',')
 
-n_plots = 4
-# n_plots = 6
+# Plot 1x1
+if(n_plots == 1):
+    plt.figure()
+    plt.plot(data)
+    plt.show()
 
 # Plot 2x2
 if(n_plots == 4):

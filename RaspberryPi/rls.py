@@ -16,23 +16,29 @@ class RLS:
         self.r = 0.0335
         self.g = 9.81
         
-        self.Qmat = np.diag([1, 1, 4e6, 3e1])
+        self.Qmat = np.diag([1, 1, 4e7, 3e1])
         self.Rmat = 2
         self.computeAB()
         self.initRLS()
         self.K = self.computeLQR()
-
+        
         self.Tsamp = 0.015 # sampling time (s)
         
         self.state = np.zeros((4, 1))
         self.state_pre = np.zeros((4, 1))
         self.ctrl_pre = 0;
         
-        self.file = open('/home/pi/Desktop/RLS_data.csv', 'w')
+        self.file_theta = open('/home/pi/Desktop/RobotData/RLS_theta.csv', 'w')
+        self.file_state = open('/home/pi/Desktop/RobotData/RLS_state.csv', 'w')
+        self.file_ctrl = open('/home/pi/Desktop/RobotData/RLS_ctrl.csv', 'w')
+        self.file_K = open('/home/pi/Desktop/RobotData/RLS_K.csv', 'w')
         
     
     def cleanup(self):
-        self.file.close()
+        self.file_theta.close()
+        self.file_state.close()
+        self.file_theta.close()
+        self.file_theta.close()
     
     
     def computeAB(self):
@@ -84,7 +90,7 @@ class RLS:
         self.delta[3, 0] = self.state_pre[3, 0]
         
         KN = self.P @ self.phi @ np.linalg.inv(self.forget * np.identity(4) + self.phi.T @ self.P @ self.phi)
-        self.theta = self.theta + KN @ (self.state - self.phi.T @ self.theta - self.delta)
+        self.theta = self.theta + 0.1 * KN @ (self.state - self.phi.T @ self.theta - self.delta)
         self.P = (np.identity(6) - KN @ self.phi.T) @ self.P / self.forget
         
         self.updateModel()
@@ -117,13 +123,19 @@ class RLS:
         else:
             self.updateRLS()
         
-        if(cnt < 500):
+        if(cnt < 1000):
             K = self.K
         else:
             K = self.computeLQR()
+
+        np.savetxt(self.file_theta, self.theta.T, delimiter=',')
+        np.savetxt(self.file_state, self.state.T, delimiter=',')
+        np.savetxt(self.file_ctrl, np.asarray([self.ctrl_pre]), delimiter=',')
+        np.savetxt(self.file_K, np.expand_dims(K, 1).T, delimiter=',')
+        
         K = K.tolist()
         
-        np.savetxt(self.file, self.state.T, delimiter=',')
+        
         
         return K # <--- This needs to be a python list of 4 floats
     

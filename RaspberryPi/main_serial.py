@@ -37,6 +37,7 @@ class Main:
 #                    print("Incoming:", inp)
                     K = self.program.main(inp, self.cnt)
                     self.cnt += 1
+                    print(self.cnt)
 #                    print("Outgoing:", K)
                     outgoing = struct.pack("ffff", K[0], K[1], K[2], K[3])
                     self.ser.write(outgoing)
