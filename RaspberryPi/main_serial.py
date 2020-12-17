@@ -3,7 +3,7 @@ import serial
 import struct
 import time
 from rls import RLS
-from adp_data_collect import ADP
+from adp_alanna import ADP
 
 class Main:
     BAUD = 57600
@@ -56,7 +56,7 @@ class Main:
                         continue;
                     inp = struct.unpack(self.decode_string, incoming)
                     K = self.program.main(inp)
-                    outgoing = struct.pack("ffff", K[0], K[1], K[2], K[3])
+                    outgoing = struct.pack("f", K)
                     self.ser.write(outgoing)
         except KeyboardInterrupt:
             pass
