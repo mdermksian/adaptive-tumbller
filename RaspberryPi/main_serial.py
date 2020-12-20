@@ -60,6 +60,7 @@ class Main:
                     self.ser.write(outgoing)
         except KeyboardInterrupt:
             pass
+        self.program.cleanup()
 
     def run(self):
         if self.mode == "ADP":
